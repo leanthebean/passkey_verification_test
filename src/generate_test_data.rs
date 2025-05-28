@@ -31,8 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create TOML content
     let toml_content = format!(
         r#"# Test data for ECDSA Secp256r1 verification
-public_key_x = {:#?}
-public_key_y = {:#?}
+pub_key_x = {:#?}
+pub_key_y = {:#?}
 signature = {:#?}
 hashed_message = {:#?}
 "#,
