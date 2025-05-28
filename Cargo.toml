@@ -1,0 +1,13 @@
+[package]
+name = "passkey_verification_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+p256 = "0.13"
+sha2 = "0.10"
+rand = "0.8" 
+
+[[bin]]
+name = "generate_test_data"
+path = "src/generate_test_data.rs"
