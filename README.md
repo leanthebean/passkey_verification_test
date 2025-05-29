@@ -33,12 +33,12 @@ This project demonstrates passkey verification using Noir.
 
 5. **Generate Proof**
    ```bash
-   bb prove -b ./target/passkey_proving.json -w ./target/passkey_proving.gz -o ./target
+   bb prove -b ./target/passkey_verification_test.json -w ./target/passkey_verification_test.gz -o ./target
    ```
 
 6. **Generate Verification Key**
    ```bash
-   bb write_vk -b ./target/passkey_proving.json -o ./target
+   bb write_vk -b ./target/passkey_verification_test.json -o ./target
    ```
 
 7. **Verify the Proof**
