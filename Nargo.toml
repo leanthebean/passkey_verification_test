@@ -1,5 +1,5 @@
 [package]
-name = "hello_world"
+name = "passkey_verification_test"
 type = "bin"
 authors = [""]
 

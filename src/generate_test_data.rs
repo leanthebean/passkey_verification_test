@@ -12,48 +12,23 @@ use rand::rngs::OsRng;
 
 // run with cargo run --bin generate_test_data
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let key_pair = KeyPair::new(Some("345763aa024409b31f932c7098a4e4c4e8519182a8b726aa5b105c47582c2a4c"))?;
+    let key_pair = KeyPair::new(None)?;
     
     // Print the keys
     println!("Private Key (hex): {}", hex::encode(key_pair.get_private_key()));
     println!("Public Key (hex): {}", hex::encode(key_pair.get_public_key()));
 
-    // Create a test message and hash it
+    // Create and sign a test message
     let message = b"Hello world";
-
-    let mut hasher = Sha256::new();
-    hasher.update(message);
-    let hashed_message = hasher.finalize();
-
-    // Sign the hashed message
-    let signature: SignatureComponents = key_pair.sign(message);
-
-    println!("Message hash: {:?}", signature.message_hash);
+    let signature = key_pair.sign(message);
     
-    // Expected signature
-    let expected_sig: Vec<u8> = vec![
-        134, 81, 58, 11, 66, 31, 17, 150, 155, 146, 88, 208, 25, 225, 157, 226, 
-        233, 200, 254, 29, 101, 17, 190, 98, 165, 125, 141, 208, 220, 47, 8, 124, 
-        187, 136, 109, 172, 186, 22, 16, 38, 242, 8, 252, 145, 121, 173, 38, 146, 
-        146, 220, 115, 134, 43, 110, 5, 104, 31, 218, 17, 160, 97, 88, 50, 73
-    ];
-
-    // Compare signatures
-    let mut our_sig = Vec::with_capacity(64);
-    our_sig.extend_from_slice(&signature.r);
-    our_sig.extend_from_slice(&signature.s);
-    
-    println!("Our signature: {:?}", our_sig);
-    println!("Expected signature: {:?}", expected_sig);
-    println!("Signatures match: {}", our_sig == expected_sig);
-
     // Get the public key bytes
     let public_key_bytes = key_pair.get_public_key();
-
+    
     // Format the data according to Prover.toml format
-    let hashed_message_vec: Vec<u8> = hashed_message.to_vec();
-    let pub_key_x_vec: Vec<u8> = public_key_bytes[1..33].to_vec();
-    let pub_key_y_vec: Vec<u8> = public_key_bytes[33..65].to_vec();
+    let hashed_message_vec = signature.message_hash;
+    let pub_key_x_vec = public_key_bytes[1..33].to_vec();
+    let pub_key_y_vec = public_key_bytes[33..65].to_vec();
     
     // Normalize signature if needed
     let n = BigUint::from_bytes_be(&[
@@ -141,61 +116,39 @@ impl KeyPair {
     }
 
     pub fn sign(&self, message: &[u8]) -> SignatureComponents {
-        println!("Message being signed: {:?}", message);
         let mut hasher = Sha256::new();
         hasher.update(message);
         let sha256_hash = hasher.finalize().to_vec();
         
         let signature: Signature = self.signing_key.sign(message);
-
-
         let r_bytes = signature.r().to_bytes();
         let s_bytes = signature.s().to_bytes();
         
-        // Print raw signature as 64-byte array
-        let mut raw_sig = Vec::with_capacity(64);
-        raw_sig.extend_from_slice(&r_bytes);
-        raw_sig.extend_from_slice(&s_bytes);
-        println!("Raw Signature (64 bytes): {:?}", raw_sig);
-        
-        // Print DER signature
-        let der_sig = signature.to_der().to_bytes();
-        println!("DER Signature (bytes): {:?}", der_sig);
-        
-        let components = SignatureComponents {
+        SignatureComponents {
             r: r_bytes.to_vec(),
             s: s_bytes.to_vec(),
-            message_hash: message.to_vec(),
-        };
-        
-        components
+            message_hash: sha256_hash,
+        }
     }
 
     pub fn get_public_key(&self) -> Vec<u8> {
-        // Export the public key in SEC1 encoded format
         self.signing_key.verifying_key()
-            .to_encoded_point(false) //this gives us the uncompressed format
+            .to_encoded_point(false)
             .as_bytes()
             .to_vec()
     }
 
     pub fn get_private_key(&self) -> Vec<u8> {
-        // Export the private key as bytes
         self.signing_key.to_bytes().to_vec()
     }
-
-    // pub fn verify_der(&self, message: &[u8], signature: &[u8]) -> bool {
-    //     // Verify using this keypair's public key
-    //     verify_signature_der(message, signature, &self.get_public_key())
-    // }
 
     pub fn verify(&self, message: &[u8], r: &[u8], s: &[u8]) -> bool {
         let verifying_key = self.signing_key.verifying_key();
         let r_array: [u8; 32] = r.try_into().unwrap_or_default();
         let s_array: [u8; 32] = s.try_into().unwrap_or_default();
     
-    Signature::from_scalars(r_array, s_array)
-        .map(|sig| verifying_key.verify(message, &sig).is_ok())
-        .unwrap_or(false)
+        Signature::from_scalars(r_array, s_array)
+            .map(|sig| verifying_key.verify(message, &sig).is_ok())
+            .unwrap_or(false)
     }
 }
